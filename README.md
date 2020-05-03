@@ -14,7 +14,18 @@ The default interval which we run these jobs is 60 seconds which is what I use o
 ## Requirements
 
 - Git >2.26.0. May work with 2.25.0 and earlier but I have yet tested, best to stay on higher version as I do plan to turn on Bloom filter feature coming in 2.27.0.
+
 - Bash
+
+## Features
+
+- **Pre-fetch objects**: Pre-fetching objects from upstream to hidden refs to pre-populate your git's Object Database(odb) with upstream objects in the background. This will accelerate your `git fetch` and `git pull`.
+
+- **Commit-graph refresh**: Rebuilding commit-graph split in the background in an incremental fashion. Help accerlerate operations require traverse git commit tree (i.e. `git log`)
+
+- **Loose-objects packing**: Fetches and commits are immediately stored as delta compressed packfiles, more optimized for retrieving data as well as storage. Loose-objects are cleaned away after have been packed in a non-disruptive way.
+
+- **Repacking multiple packfiles**: Too many packfiles could lead to slow git operations when finding an objects. We incrementally repack multiple packfiles into a bigger one in the background and then remove the old packfiles. This reduce the number of packfile in a repository thus making git a lot faster.
 
 ## Why not MSFT Scalar
 
