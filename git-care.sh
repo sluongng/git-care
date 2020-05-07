@@ -7,8 +7,11 @@ INTERVAL_PREFETCH=60
 INTERVAL_COMMIT_GRAPH=60
 INTERVAL_MIDX=60
 INTERVAL_PACK_LOOSE=60
+INTERVAL_REFRESH_INDEX=900
 
 PREFETCH_REF_SPEC='+refs/heads/*'
+
+SUPPORT_UNTRACKED_CACHE=1
 
 # prefetch fetches commits from origin remote into refs with `prefetch` prefix
 # this way objects database(odb) is populated in the background
@@ -185,6 +188,30 @@ pack_loose_objects_loop() {
   done;
 }
 
+# refresh_index keep your untracked cache up-to-date
+# and keep watchman process awake.
+# Modeled after https://github.com/microsoft/scalar/pull/365
+refresh_index() {
+  if [[ ${SUPPORT_UNTRACKED_CACHE} -eq 1 ]]; then
+    git update-index --untracked-cache 2>&1 >/dev/null
+  fi
+
+  git --no-optional-locks status --untracked-files=all 2>&1 >/dev/null
+}
+
+refresh_index_loop() {
+  while true; do
+    INTERVAL_REFRESH_INDEX=$(git config --get 'git-care.refresh-index')
+    if [[ ${INTERVAL_REFRESH_INDEX} -le 0 ]]; then
+      exit 0;
+    fi
+
+    refresh_index || :;
+
+    sleep ${INTERVAL_REFRESH_INDEX};
+  done;
+}
+
 # start_git_care starts the background processes
 start_git_care() {
   # Run a set of tests to ensure background jobs could
@@ -194,12 +221,22 @@ Running some tests before updating git configs
 '
   echo 'Testing prefetch'
   prefetch
+
   echo 'Testing commit_graph'
   commit_graph
+
   echo 'Testing pack_loose_objects'
   pack_loose_objects
+
   echo 'Testing multi_pack_index (this might take a bit of time)'
   multi_pack_index
+
+  echo 'Testing untracked-cache'
+  if ! git update-index --test-untracked-cache; then
+    SUPPORT_UNTRACKED_CACHE=0
+  fi
+  refresh_index
+
   echo '
 All tests succeed! Updating git configs.
 '
@@ -225,11 +262,13 @@ All tests succeed! Updating git configs.
   git config git-care.commit-graph ${INTERVAL_COMMIT_GRAPH}
   git config git-care.multi-pack-index ${INTERVAL_MIDX}
   git config git-care.pack-loose-objects ${INTERVAL_PACK_LOOSE}
+  git config git-care.refresh-index ${INTERVAL_REFRESH_INDEX}
 
   prefetch_loop  &
   commit_graph_loop  &
   multi_pack_index_loop  &
   pack_loose_objects_loop  &
+  refresh_index_loop &
 }
 
 # stop_git_care stop the background processes
