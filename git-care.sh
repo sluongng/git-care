@@ -95,10 +95,10 @@ _midx_verify_or_rewrite() {
 # result than Scalar
 _midx_auto_size() {
   local second_biggest_pack=$(
-    find ${PROJECT_DIR}/.git/objects/pack/*.pack -type f |\
-      xargs stat -f%z |\
+    wc -c .git/objects/pack/*pack |\
       sort -n |\
-      tail -2 |\
+      awk '{print $1}' |\
+      tail -3 |\
       head -1
   )
 
