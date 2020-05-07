@@ -27,14 +27,20 @@ The default interval which we run these jobs is 60 seconds which is what I use o
 
 - **Repacking multiple packfiles**: Too many packfiles could lead to slow git operations when finding an objects. We incrementally repack multiple packfiles into a bigger one in the background and then remove the old packfiles. This reduce the number of packfile in a repository thus making git a lot faster.
 
+- **Refresh untracked cache**: Git status relies on untracked cache to keep user up-to-date on the repository status. Keeping this fresh should make `git status` faster and more accurate
+
+- **Fsmonitor Watchman hook**: If you have watchman installed, **git-care** will detect and install the fsmonitor hook that Microsoft folks has contributed upstream. This will help `git status` work a lot faster in bigger repository.
+
 ## Why not MSFT Scalar
 
 - Scalar does not support Linux-based OS (only MacOS + Window for now).
+
 - Multi-pack-index repack operations in this script was slightly altered to achieve a more consistent result.
 
 ## What is missing in git-care
 
 - No support for GVFS
+
 - No support for sparse-checkout and partial-clone (though this could be used together with a partial-clone repo)
 
 ## Caveats
