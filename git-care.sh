@@ -98,7 +98,7 @@ _midx_verify_or_rewrite() {
 # result than Scalar
 _midx_auto_size() {
   local second_biggest_pack=$(
-    wc -c .git/objects/pack/*pack |\
+    wc -c ${PROJECT_DIR}/.git/objects/pack/*pack |\
       sort -n |\
       awk '{print $1}' |\
       tail -3 |\
