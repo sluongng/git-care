@@ -331,7 +331,7 @@ To toggle git-care, just run it again.
 > ./git-care.sh
 
 To force-kill all git-care processes and ignore git config changes. (not recommended)
-> kill $(ps aux | grep 'git-care' | grep -v grep | grep -v vim | awk '{print $2}')
+> kill $(ps aux | grep "git-care" | grep -v grep | grep -v vim | awk "{print $2}")
 '
 
 else
