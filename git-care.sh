@@ -212,6 +212,33 @@ refresh_index_loop() {
   done;
 }
 
+
+# turn_on_watchman checks if watchman executable is available
+# and install the fsmonitor hook to increase git-status speed
+turn_on_watchman() {
+  if [[ -x "$(command -v watchman)" ]]; then
+    cp -f ${PROJECT_DIR}/.git/hooks/fsmonitor-watchman.sample \
+      ${PROJECT_DIR}/.git/hooks/fsmonitor-watchman;
+
+    echo 'Installed fsmonitor-watchman hook';
+  fi
+}
+
+turn_off_watchman() {
+  if [[ -f ${PROJECT_DIR}/.git/hooks/fsmonitor-watchman ]]; then
+    rm -f ${PROJECT_DIR}/.git/hooks/fsmonitor-watchman;
+
+    echo 'Removed fsmonitor-watchman hook';
+  fi
+}
+
+#############################
+#                           #
+#  XXX XXX XXX XXX XXX XXX  #
+#  XXX XXX XXX XXX XXX XXX  #
+#                           #
+#############################
+
 # start_git_care starts the background processes
 start_git_care() {
   # Run a set of tests to ensure background jobs could
@@ -256,6 +283,8 @@ All tests succeed! Updating git configs.
   echo 'Disabling auto-gc'
   git config gc.auto 0
 
+  turn_on_watchman
+
   # Set flags for git-care executions
   git config git-care.enable 1
   git config git-care.prefetch ${INTERVAL_PREFETCH}
@@ -286,6 +315,8 @@ stop_git_care() {
 
   # Unset all git-care config
   git config --remove-section git-care || :
+
+  turn_off_watchman
 }
 
 if [[ $(git config --get 'git-care.enable') -eq 0 ]]; then
