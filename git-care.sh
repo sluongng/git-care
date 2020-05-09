@@ -58,7 +58,7 @@ commit_graph() {
     rm -f ${PROJECT_DIR}/.git/objects/info/commit-graph
   fi
 
-  git commit-graph write --reachable --split --no-progress;
+  git commit-graph write --reachable --split --size-multiple=4 --no-progress;
 
   if git commit-graph verify --shallow --no-progress; then
     : # Nothing to do
@@ -67,7 +67,7 @@ commit_graph() {
     # This means we need to remove the old graph and rebuild
     # the entire graph.
     rm -f ${PROJECT_DIR}/.git/objects/info/commit-graphs/commit-graph-chain;
-    git commit-graph write --reachable --split --no-progress;
+    git commit-graph write --reachable --split --size-multiple=4 --no-progress;
   fi
 }
 
