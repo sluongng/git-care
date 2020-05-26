@@ -7,6 +7,7 @@ INTERVAL_PREFETCH=60
 INTERVAL_COMMIT_GRAPH=60
 INTERVAL_MIDX=60
 INTERVAL_PACK_LOOSE=60
+INTERVAL_PACK_REFS=120
 INTERVAL_REFRESH_INDEX=120
 
 PREFETCH_REF_SPEC='+refs/heads/*'
@@ -212,6 +213,25 @@ refresh_index_loop() {
   done;
 }
 
+# pack_refs organize all refs into a single file
+# and makes for-each-refs a bit faster
+pack_refs() {
+  # note that this will auto prune the packed refs
+  git pack-refs --all
+}
+
+pack_refs_loop() {
+  while true; do
+    INTERVAL_PACK_REFS=$(git config --get 'git-care.pack-refs')
+    if [[ ${INTERVAL_PACK_REFS} -le 0 ]]; then
+      exit 0;
+    fi
+
+    pack_refs || :;
+
+    sleep ${INTERVAL_PACK_REFS};
+  done;
+}
 
 # turn_on_watchman checks if watchman executable is available
 # and install the fsmonitor hook to increase git-status speed
@@ -255,6 +275,9 @@ Running some tests before updating git configs
   echo 'Testing pack_loose_objects'
   pack_loose_objects
 
+  echo 'Testing pack_refs'
+  pack_refs
+
   echo 'Testing multi_pack_index (this might take a bit of time)'
   multi_pack_index
 
@@ -292,11 +315,13 @@ All tests succeed! Updating git configs.
   git config git-care.multi-pack-index ${INTERVAL_MIDX}
   git config git-care.pack-loose-objects ${INTERVAL_PACK_LOOSE}
   git config git-care.refresh-index ${INTERVAL_REFRESH_INDEX}
+  git config git-care.pack-refs ${INTERVAL_PACK_REFS}
 
   prefetch_loop  &
   commit_graph_loop  &
   multi_pack_index_loop  &
   pack_loose_objects_loop  &
+  pack_refs_loop  &
   refresh_index_loop &
 }
 
