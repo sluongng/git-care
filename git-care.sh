@@ -59,7 +59,7 @@ commit_graph() {
     rm -f ${PROJECT_DIR}/.git/objects/info/commit-graph
   fi
 
-  git commit-graph write --reachable --split --size-multiple=4 --no-progress;
+  git commit-graph write --reachable --split --changed-paths --size-multiple=4 --no-progress;
 
   if git commit-graph verify --shallow --no-progress; then
     : # Nothing to do
@@ -68,7 +68,7 @@ commit_graph() {
     # This means we need to remove the old graph and rebuild
     # the entire graph.
     rm -f ${PROJECT_DIR}/.git/objects/info/commit-graphs/commit-graph-chain;
-    git commit-graph write --reachable --split --size-multiple=4 --no-progress;
+    git commit-graph write --reachable --split --changed-paths --size-multiple=4 --no-progress;
   fi
 }
 
@@ -264,6 +264,11 @@ start_git_care() {
   # Run a set of tests to ensure background jobs could
   # run without disruption
   echo '
+Note that git-care.sh requires minimum git version of 2.27.0
+Check your git version by running
+
+  git version
+
 Running some tests before updating git configs
 '
   echo 'Testing prefetch'

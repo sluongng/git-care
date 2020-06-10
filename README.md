@@ -13,7 +13,7 @@ The default interval which we run these jobs is 60 seconds which is what I use o
 
 ## Requirements
 
-- Git >2.26.0. May work with 2.25.0 and earlier but I have yet tested, best to stay on higher version as I do plan to turn on Bloom filter feature coming in 2.27.0.
+- Git >2.27.0
 
 - Bash
 
