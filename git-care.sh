@@ -268,32 +268,31 @@ turn_off_watchman() {
 
 # start_git_care starts the background processes
 start_git_care() {
+  echo '
+  Git-Care.sh requirements:
+  - git version >2.27.0
+  - watchman
+'
   # Run a set of tests to ensure background jobs could
   # run without disruption
-  echo '
-Note that git-care.sh requires minimum git version of 2.27.0
-Check your git version by running
+  echo 'Running some tests before updating git configs'
 
-  git version
-
-Running some tests before updating git configs
-'
-  echo 'Testing prefetch'
+  echo '[1/6] Testing prefetch'
   prefetch
 
-  echo 'Testing commit_graph'
+  echo '[2/6] Testing commit_graph (slow)'
   commit_graph
 
-  echo 'Testing pack_loose_objects'
+  echo '[3/6] Testing pack_loose_objects'
   pack_loose_objects
 
-  echo 'Testing pack_refs'
-  pack_refs
-
-  echo 'Testing multi_pack_index (this might take a bit of time)'
+  echo '[4/6] Testing multi_pack_index (slow)'
   multi_pack_index
 
-  echo 'Testing untracked-cache'
+  echo '[5/6] Testing pack refs'
+  pack_refs
+
+  echo '[6/6] Testing untracked-cache'
   if ! git update-index --test-untracked-cache; then
     SUPPORT_UNTRACKED_CACHE=0
   fi
@@ -367,6 +366,9 @@ To monitor operations, you can run
 To toggle git-care, just run it again.
 > ./git-care.sh
 
+To tune the interval, adjust the value in git config
+> vim .git/config
+
 To force-kill all git-care processes and ignore git config changes. (not recommended)
 > kill $(ps aux | grep "git-care" | grep -v grep | grep -v vim | awk "{print $2}")
 '
@@ -374,6 +376,11 @@ To force-kill all git-care processes and ignore git config changes. (not recomme
 else
   echo 'Stopping git-care';
   stop_git_care;
-  echo 'Stopped git-care';
+  echo '
+Unset all configs, all background jobs will auto-stop.
+
+To force-kill all git-care processes and ignore git config changes. (not recommended)
+> kill $(ps aux | grep "git-care" | grep -v grep | grep -v vim | awk "{print $2}")
+';
 fi
 
