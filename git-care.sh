@@ -195,9 +195,16 @@ pack_loose_objects_loop() {
 refresh_index() {
   if [[ ${SUPPORT_UNTRACKED_CACHE} -eq 1 ]]; then
     git update-index --untracked-cache 2>&1 >/dev/null
-  fi
 
-  git --no-optional-locks status --untracked-files=all 2>&1 >/dev/null
+    GIT_FORCE_UNTRACKED_CACHE=1 \
+      git --no-optional-locks \
+          status --untracked-files=all \
+                 --porcelain=v1 2>&1 >/dev/null
+  else
+    git --no-optional-locks \
+        status --untracked-files=all \
+               --porcelain=v1 2>&1 >/dev/null
+  fi
 }
 
 refresh_index_loop() {
