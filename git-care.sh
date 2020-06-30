@@ -164,6 +164,7 @@ pack_loose_objects() {
 
   local obj_dir_count=$(
     find ${PROJECT_DIR}/.git/objects -type d |\
+      head -1000 |\
       grep -Ev '(pack|info|objects|commit-graphs)$' |\
       wc -l
   )
