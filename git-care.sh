@@ -8,6 +8,7 @@ INTERVAL_COMMIT_GRAPH=60
 INTERVAL_MIDX=60
 INTERVAL_PACK_LOOSE=60
 INTERVAL_PACK_REFS=300
+INTERVAL_EXPIRE_REFLOG=120
 INTERVAL_REFRESH_INDEX=300
 
 PREFETCH_REF_SPEC='+refs/heads/*'
@@ -241,6 +242,24 @@ pack_refs_loop() {
   done;
 }
 
+# expire_reflog cleans the ref logs in the repo
+expire_reflog() {
+  git reflog expire --all
+}
+
+expire_reflog_loop() {
+  while true; do
+    INTERVAL_EXPIRE_REFLOG=$(git config --get 'git-care.expire-reflog')
+    if [[ ${INTERVAL_EXPIRE_REFLOG} -le 0 ]]; then
+      exit 0;
+    fi
+
+    expire_reflog || :;
+
+    sleep ${INTERVAL_EXPIRE_REFLOG};
+  done;
+}
+
 # turn_on_watchman checks if watchman executable is available
 # and install the fsmonitor hook to increase git-status speed
 turn_on_watchman() {
@@ -278,22 +297,25 @@ start_git_care() {
   # run without disruption
   echo 'Running some tests before updating git configs'
 
-  echo '[1/6] Testing prefetch'
+  echo '[1/7] Testing prefetch'
   prefetch
 
-  echo '[2/6] Testing commit_graph (slow)'
+  echo '[2/7] Testing commit_graph (slow)'
   commit_graph
 
-  echo '[3/6] Testing pack_loose_objects'
+  echo '[3/7] Testing pack_loose_objects'
   pack_loose_objects
 
-  echo '[4/6] Testing multi_pack_index (slow)'
+  echo '[4/7] Testing multi_pack_index (slow)'
   multi_pack_index
 
-  echo '[5/6] Testing pack refs'
+  echo '[5/7] Testing pack refs'
   pack_refs
 
-  echo '[6/6] Testing untracked-cache'
+  echo '[6/7] Testing expire reflog'
+  expire_reflog
+
+  echo '[7/7] Testing untracked-cache'
   if ! git update-index --test-untracked-cache; then
     SUPPORT_UNTRACKED_CACHE=0
   fi
@@ -328,12 +350,14 @@ All tests succeed! Updating git configs.
   git config git-care.pack-loose-objects ${INTERVAL_PACK_LOOSE}
   git config git-care.refresh-index ${INTERVAL_REFRESH_INDEX}
   git config git-care.pack-refs ${INTERVAL_PACK_REFS}
+  git config git-care.expire-reflog ${INTERVAL_EXPIRE_REFLOG}
 
-  prefetch_loop  &
-  commit_graph_loop  &
-  multi_pack_index_loop  &
-  pack_loose_objects_loop  &
-  pack_refs_loop  &
+  prefetch_loop &
+  commit_graph_loop &
+  multi_pack_index_loop &
+  pack_loose_objects_loop &
+  pack_refs_loop &
+  expire_reflog_loop &
   refresh_index_loop &
 }
 
