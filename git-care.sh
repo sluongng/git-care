@@ -10,6 +10,7 @@ INTERVAL_PACK_LOOSE=60
 INTERVAL_PACK_REFS=300
 INTERVAL_EXPIRE_REFLOG=120
 INTERVAL_WORKTREE_PRUNE=120
+INTERVAL_RERERE_GC=120
 INTERVAL_REFRESH_INDEX=300
 
 PREFETCH_REF_SPEC='+refs/heads/*'
@@ -280,6 +281,24 @@ worktree_prune_loop() {
   done;
 }
 
+# rerere_gc cleans the expired records of merge conflicts
+rerere_gc() {
+  git rerere gc
+}
+
+rerere_gc_loop() {
+  while true; do
+    INTERVAL_RERERE_GC=$(git config --get 'git-care.rerere-gc')
+    if [[ ${INTERVAL_RERERE_GC} -le 0 ]]; then
+      exit 0;
+    fi
+
+    rerere_gc || :;
+
+    sleep ${INTERVAL_RERERE_GC};
+  done;
+}
+
 # turn_on_watchman checks if watchman executable is available
 # and install the fsmonitor hook to increase git-status speed
 turn_on_watchman() {
@@ -317,28 +336,31 @@ start_git_care() {
   # run without disruption
   echo 'Running some tests before updating git configs'
 
-  echo '[1/8] Testing prefetch'
+  echo '[1/9] Testing prefetch'
   prefetch
 
-  echo '[2/8] Testing commit_graph (slow)'
+  echo '[2/9] Testing commit_graph (slow)'
   commit_graph
 
-  echo '[3/8] Testing pack_loose_objects'
+  echo '[3/9] Testing pack_loose_objects'
   pack_loose_objects
 
-  echo '[4/8] Testing multi_pack_index (slow)'
+  echo '[4/9] Testing multi_pack_index (slow)'
   multi_pack_index
 
-  echo '[5/8] Testing pack refs'
+  echo '[5/9] Testing pack refs'
   pack_refs
 
-  echo '[6/8] Testing expire reflog'
+  echo '[6/9] Testing expire reflog'
   expire_reflog
 
-  echo '[7/8] Testing prune worktree'
+  echo '[7/9] Testing prune worktree'
   worktree_prune
 
-  echo '[8/8] Testing untracked-cache'
+  echo '[8/9] Testing expire rerere'
+  rerere_gc
+
+  echo '[9/9] Testing untracked-cache'
   if ! git update-index --test-untracked-cache; then
     SUPPORT_UNTRACKED_CACHE=0
   fi
@@ -374,6 +396,7 @@ All tests succeed! Updating git configs.
   git config git-care.refresh-index ${INTERVAL_REFRESH_INDEX}
   git config git-care.pack-refs ${INTERVAL_PACK_REFS}
   git config git-care.worktree-prune ${INTERVAL_WORKTREE_PRUNE}
+  git config git-care.rerere-gc ${INTERVAL_RERERE_GC}
   git config git-care.expire-reflog ${INTERVAL_EXPIRE_REFLOG}
 
   prefetch_loop &
@@ -383,6 +406,7 @@ All tests succeed! Updating git configs.
   pack_refs_loop &
   worktree_prune_loop &
   expire_reflog_loop &
+  rerere_gc_loop &
   refresh_index_loop &
 }
 
