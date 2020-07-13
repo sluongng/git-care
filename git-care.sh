@@ -444,7 +444,7 @@ To tune the interval, adjust the value in git config
 > vim .git/config
 
 To force-kill all git-care processes and ignore git config changes. (not recommended)
-> kill $(ps aux | grep "git-care" | grep -v grep | grep -v vim | awk "{print $2}")
+> kill $(ps aux | grep 'git-care' | grep -v grep | grep -v vim | awk '\''{print $2}'\'')
 '
 
 else
@@ -454,7 +454,7 @@ else
 Unset all configs, all background jobs will auto-stop.
 
 To force-kill all git-care processes and ignore git config changes. (not recommended)
-> kill $(ps aux | grep "git-care" | grep -v grep | grep -v vim | awk "{print $2}")
+> kill $(ps aux | grep 'git-care' | grep -v grep | grep -v vim | awk '\''{print $2}'\'')
 ';
 fi
 
