@@ -9,6 +9,7 @@ INTERVAL_MIDX=60
 INTERVAL_PACK_LOOSE=60
 INTERVAL_PACK_REFS=300
 INTERVAL_EXPIRE_REFLOG=120
+INTERVAL_WORKTREE_PRUNE=120
 INTERVAL_REFRESH_INDEX=300
 
 PREFETCH_REF_SPEC='+refs/heads/*'
@@ -260,6 +261,25 @@ expire_reflog_loop() {
   done;
 }
 
+# worktree_prune cleans administrative files left-over
+# after a worktree was removed
+worktree_prune() {
+  git worktree prune
+}
+
+worktree_prune_loop() {
+  while true; do
+    INTERVAL_WORKTREE_PRUNE=$(git config --get 'git-care.worktree-prune')
+    if [[ ${INTERVAL_WORKTREE_PRUNE} -le 0 ]]; then
+      exit 0;
+    fi
+
+    worktree_prune || :;
+
+    sleep ${INTERVAL_WORKTREE_PRUNE};
+  done;
+}
+
 # turn_on_watchman checks if watchman executable is available
 # and install the fsmonitor hook to increase git-status speed
 turn_on_watchman() {
@@ -297,25 +317,28 @@ start_git_care() {
   # run without disruption
   echo 'Running some tests before updating git configs'
 
-  echo '[1/7] Testing prefetch'
+  echo '[1/8] Testing prefetch'
   prefetch
 
-  echo '[2/7] Testing commit_graph (slow)'
+  echo '[2/8] Testing commit_graph (slow)'
   commit_graph
 
-  echo '[3/7] Testing pack_loose_objects'
+  echo '[3/8] Testing pack_loose_objects'
   pack_loose_objects
 
-  echo '[4/7] Testing multi_pack_index (slow)'
+  echo '[4/8] Testing multi_pack_index (slow)'
   multi_pack_index
 
-  echo '[5/7] Testing pack refs'
+  echo '[5/8] Testing pack refs'
   pack_refs
 
-  echo '[6/7] Testing expire reflog'
+  echo '[6/8] Testing expire reflog'
   expire_reflog
 
-  echo '[7/7] Testing untracked-cache'
+  echo '[7/8] Testing prune worktree'
+  worktree_prune
+
+  echo '[8/8] Testing untracked-cache'
   if ! git update-index --test-untracked-cache; then
     SUPPORT_UNTRACKED_CACHE=0
   fi
@@ -350,6 +373,7 @@ All tests succeed! Updating git configs.
   git config git-care.pack-loose-objects ${INTERVAL_PACK_LOOSE}
   git config git-care.refresh-index ${INTERVAL_REFRESH_INDEX}
   git config git-care.pack-refs ${INTERVAL_PACK_REFS}
+  git config git-care.worktree-prune ${INTERVAL_WORKTREE_PRUNE}
   git config git-care.expire-reflog ${INTERVAL_EXPIRE_REFLOG}
 
   prefetch_loop &
@@ -357,6 +381,7 @@ All tests succeed! Updating git configs.
   multi_pack_index_loop &
   pack_loose_objects_loop &
   pack_refs_loop &
+  worktree_prune_loop &
   expire_reflog_loop &
   refresh_index_loop &
 }
