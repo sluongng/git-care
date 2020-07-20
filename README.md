@@ -19,9 +19,9 @@ The default interval which we run these jobs is 60 seconds which is what I use o
 
 ## Features
 
-- **Pre-fetch objects**: Pre-fetching objects from upstream to hidden refs to pre-populate your git's Object Database(odb) with upstream objects in the background. This will accelerate your `git fetch` and `git pull`.
+- **Pre-Fetch objects**: Pre-fetching objects from upstream to hidden refs to pre-populate your git's Object Database(odb) with upstream objects in the background. This will accelerate your `git fetch` and `git pull`.
 
-- **Commit-graph refresh**: Rebuilding commit-graph split in the background in an incremental fashion. Help accerlerate operations require traverse git commit tree (i.e. `git log`)
+- **Commit-graph refresh**: Rebuilding commit-graph split in the background in an incremental fashion with Bloom filter included. Helps accelerate operations require traverse git commit tree (i.e. `git log`)
 
 - **Loose-objects packing**: Fetches and commits are immediately stored as delta compressed packfiles, more optimized for retrieving data as well as storage. Loose-objects are cleaned away after have been packed in a non-disruptive way.
 
@@ -31,11 +31,15 @@ The default interval which we run these jobs is 60 seconds which is what I use o
 
 - **Fsmonitor Watchman hook**: If you have watchman installed, **git-care** will detect and install the fsmonitor hook that Microsoft folks has contributed upstream. This will help `git status` work a lot faster in bigger repository.
 
+- **Clean up**: Similar to git-gc, various garbage collection is also performed routinely (i.e. worktree, reflogs, packrefs, etc...)
+
 ## Why not MSFT Scalar
 
 - Scalar does not support Linux-based OS (only MacOS + Window for now).
 
-- Multi-pack-index repack operations in this script was slightly altered to achieve a more consistent result.
+- Multi-pack-index repack operations in this script was slightly altered to achieve a more consistent result. This has been ported to upstream Scalar in https://github.com/microsoft/scalar/pull/375 .
+
+- Included Bloom filter in commit-graph and detection for missing Bloom filter.
 
 ## What is missing in git-care
 
@@ -57,6 +61,8 @@ Similar to Scalar optimization, there are some caveats to these optimizations ap
 
 - Repack limit: Scalar has a cap to packing loose objects and repacking multiple packs. This due to the nature of working with the Microsoft Office repository to be way too big and slow. With `git-care.sh`, I dont ignore the biggest packfile when repacking as well as put no loose objects count cap when packing loose objects, but one should be able to add such `if else` condition in easily if needed (it's bash script).
 
+- Multiple projects support: `git-care.sh` spawns multiple processes to support 1 big repo project. Attempt to run this over multiple project will cause an unhealthy amount of processes running in parallel in your machine. A proper task scheduler should be used to manage multiple-projects.
+
 ## What next?
 
 This script is pretty much feature completed and tested on MacOS + Centos 7.
@@ -69,3 +75,9 @@ I orignally wrote this, based on Scalar optimzation, to support similar optimiza
 - [ ] PostCommit hook to `prepush` (this should go with a serverside script that handle cleanup on prepush refs)
       `pre-push + pre-fetch` together achieve similar effect like Facebook's Eden Commit Cloud.
 - [ ] Documentation / Testing
+
+## Ackownledgements
+
+- Most of the works here were inspired by [Derrick Stolee's works](https://github.com/derrickstolee) in upstream git and [MSFT's Scalar](https://github.com/microsoft/scalar)
+
+- This script was wrote to improve the Developer Experience @ ${DAY_JOB}. An internal version of `git-care.sh` is mainained separately with little modifications.
