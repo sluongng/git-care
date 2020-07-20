@@ -112,9 +112,11 @@ verify_bloom_filter() {
 commit_graph() {
   # Split commit-graph does not work when the full commit-graph file
   # is present. So we should remove it first.
+  #
   # Reference:
   # - https://github.com/git/git/blob/cb99a34e23e32ca8e94bafaa9699cfd133a17fd3/t/t5324-split-commit-graph.sh#L336
   if [ -f ${PROJECT_DIR}/.git/objects/info/commit-graph ]; then
+    # TODO: perhaps we should write commit-graph with '--split --append' here instead?
     rm -f ${PROJECT_DIR}/.git/objects/info/commit-graph
   fi
 
@@ -129,7 +131,7 @@ commit_graph() {
   if git commit-graph verify --shallow --no-progress; then
     : # Nothing to do
   else
-    # Somebody might broke the commit-graph by force pushing
+    # Somebody might broke the commit-graph by force pushing.
     # This means we need to remove the old graph and rebuild
     # the entire graph.
     rm -f ${PROJECT_DIR}/.git/objects/info/commit-graphs/commit-graph-chain;
@@ -159,8 +161,8 @@ _midx_verify_or_rewrite() {
   fi
 }
 
-# _midx_auto_size calculates the --batch-size dynamically
-# note that this use 2nd biggest batch to achieve a more consistent
+# _midx_auto_size calculates the --batch-size dynamically.
+# This use 2nd biggest batch to achieve a more consistent
 # result than Scalar
 _midx_auto_size() {
   local second_biggest_pack=$(
@@ -177,7 +179,7 @@ _midx_auto_size() {
 
 # multi_pack_index writes a multi-pack-index file
 # which is used to incrementally repack them into bigger packfile.
-# Pack files which are repack-ed will be cleanup with `expire`
+# Pack files which are repack-ed will be cleanup with `expire`.
 # Consolidating packfiles helps speed up operations such as git-log
 multi_pack_index() {
   git multi-pack-index write --no-progress;
