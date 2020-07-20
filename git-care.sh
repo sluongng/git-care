@@ -62,14 +62,16 @@ verify_bloom_filter() {
     if [[ ${chunk_count} -lt 3 ]]; then
       echo "Corrupted commit-graph in $f"
       echo 'Rebuilding commit-graph chain'
-      rm -f ${PROJECT_DIR}/.git/objects/info/commit-graphs/commit-graph-chain;
+      rm -f ${PROJECT_DIR}/.git/objects/info/commit-graphs/commit-graph-chain
+      break
     fi
 
     # If there were only 3 chunks, the Bloom filter chunks are missing
     if [[ ${chunk_count} == 3 ]]; then
       echo "Missing Bloom filter in $f"
       echo 'Rebuilding commit-graph chain with bloom filter (slow)'
-      rm -f ${PROJECT_DIR}/.git/objects/info/commit-graphs/commit-graph-chain;
+      rm -f ${PROJECT_DIR}/.git/objects/info/commit-graphs/commit-graph-chain
+      break
     fi
 
     has_bloom_index=0
@@ -102,7 +104,8 @@ verify_bloom_filter() {
     if [[ $((has_bloom_index + has_bloom_data)) != 2 ]]; then
       echo "Missing Bloom filter in $f"
       echo 'Rebuilding commit-graph chain with bloom filter (slow)'
-      rm -f ${PROJECT_DIR}/.git/objects/info/commit-graphs/commit-graph-chain;
+      rm -f ${PROJECT_DIR}/.git/objects/info/commit-graphs/commit-graph-chain
+      break
     fi
   done
 }
