@@ -51,6 +51,62 @@ prefetch_loop() {
   done;
 }
 
+# verify_bloom_filter verify that bloom filter was used
+# in a split commit-graph chain. If not, remove the chain.
+verify_bloom_filter() {
+  for f in ${PROJECT_DIR}/.git/objects/info/commit-graphs/*.graph; do
+    chunk_count=$(od -j6 -N1 -An -i $f | tr -d '[:space:]')
+
+    # A commit graph always has 3 default chunks
+    # If there were less than 3 chunks, the file is corrupted
+    if [[ ${chunk_count} -lt 3 ]]; then
+      echo "Corrupted commit-graph in $f"
+      echo 'Rebuilding commit-graph chain'
+      rm -f ${PROJECT_DIR}/.git/objects/info/commit-graphs/commit-graph-chain;
+    fi
+
+    # If there were only 3 chunks, the Bloom filter chunks are missing
+    if [[ ${chunk_count} == 3 ]]; then
+      echo "Missing Bloom filter in $f"
+      echo 'Rebuilding commit-graph chain with bloom filter (slow)'
+      rm -f ${PROJECT_DIR}/.git/objects/info/commit-graphs/commit-graph-chain;
+    fi
+
+    has_bloom_index=0
+    has_bloom_data=0
+
+    # Find Bloom filter chunks among non-default chunks
+    # Always skip the first 3 default chunks
+    max_offset=$((chunk_count - 1))
+    for i in $(seq 3 ${max_offset}); do
+      # 8 bytes for commit-graph header
+      # 12 bytes for each chunk skipped
+      bytes_offset=$((8 + i * 12))
+
+      # skipped $bytes_offset bytes,
+      # read first 4 bytes of next chunk to get 4 characters chunk id
+      chunk_id=$(od -j${bytes_offset} -N4 -An -c $f | tr -d '[:space:]')
+      case $chunk_id in
+        'BIDX')
+          has_bloom_index=1
+          ;;
+        'BDAT')
+          has_bloom_data=1
+          ;;
+        *)
+          ;;
+      esac
+    done
+
+    # If either the Bloom filter chunks were missing
+    if [[ $((has_bloom_index + has_bloom_data)) != 2 ]]; then
+      echo "Missing Bloom filter in $f"
+      echo 'Rebuilding commit-graph chain with bloom filter (slow)'
+      rm -f ${PROJECT_DIR}/.git/objects/info/commit-graphs/commit-graph-chain;
+    fi
+  done
+}
+
 # commit_graph refreshes the commit-graph in a non-disruptive manner
 # thus speed up git operations over the commit history i.e. git-log
 commit_graph() {
@@ -60,6 +116,12 @@ commit_graph() {
   # - https://github.com/git/git/blob/cb99a34e23e32ca8e94bafaa9699cfd133a17fd3/t/t5324-split-commit-graph.sh#L336
   if [ -f ${PROJECT_DIR}/.git/objects/info/commit-graph ]; then
     rm -f ${PROJECT_DIR}/.git/objects/info/commit-graph
+  fi
+
+  # If a commit-graph chain already exists,
+  # check if every chain were built with Bloom filter.
+  if [ -f ${PROJECT_DIR}/.git/objects/info/commit-graphs/commit-graph-chain ]; then
+    verify_bloom_filter
   fi
 
   git commit-graph write --reachable --split --changed-paths --size-multiple=4 --no-progress;
