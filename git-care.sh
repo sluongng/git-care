@@ -452,6 +452,17 @@ All tests succeed! Updating git configs.
   echo 'Disabling auto-gc'
   git config gc.auto 0
 
+  # Disable auto commit-graph creation
+  # Commit-graph are managed by a dedicated process so we should
+  # not need to rely on git process to chain call the write ops
+  git config fetch.writeCommitGraph false
+  git config fetch.experimental false
+
+  # Improve fetch negotiation time
+  # This is often set by 'feature.experimental' but since we unset that
+  # config above, we should set it here again
+  git config fetch.negotiationAlgorithm skipping
+
   turn_on_watchman
 
   # Set flags for git-care executions
@@ -489,6 +500,13 @@ stop_git_care() {
 
   # See note in start_git_care
   git config --unset transfer.unpackLimit || :
+
+  # Commit-graph related config
+  git config --unset feature.experimental || :
+  git config --unset fetch.writeCommitGraph || :
+
+  # Unset this to follow global's feature.experimental
+  git config --unset fetch.negotiationAlgorithm || :
 
   # Unset all git-care config
   git config --remove-section git-care || :
